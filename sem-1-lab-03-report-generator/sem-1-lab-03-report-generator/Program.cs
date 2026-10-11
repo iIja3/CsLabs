@@ -6,7 +6,7 @@ namespace lad3
 {
     public class Programm
     {
-        public static String datest(string line)
+        public static string datest(string line)
         {
             string date = "";
             if (line.Contains("Событие началось"))
@@ -18,7 +18,7 @@ namespace lad3
             return date;
         }
 
-        public static String winn(string line)
+        public static string winn(string line)
         {
             string text = "";
             if (line.Contains("объявлены победителями"))
