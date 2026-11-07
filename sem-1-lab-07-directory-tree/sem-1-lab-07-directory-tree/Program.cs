@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
+
 namespace lab7;
+
 internal class Program
 {
     // Current line in file
@@ -16,7 +18,10 @@ internal class Program
     {
         _lines = File.ReadAllLines("tree.txt");
 
-        Console.WriteLine(_lines[0]);
+        if (_lines.Length > 0)
+        {
+            Console.WriteLine(_lines[0]);
+        }
 
         _lineIndex = 1;
 
@@ -31,35 +36,60 @@ internal class Program
         {
             var line = _lines[_lineIndex].Trim();
 
-            if (line == "")
+            if (string.IsNullOrEmpty(line))
             {
-                _lineIndex += 2;
+                _lineIndex++;
                 continue;
             }
 
             if (line == "END")
             {
                 _depth--;
-
                 _lineIndex++;
-
                 return;
             }
 
             if (line.StartsWith("BEGIN "))
             {
-                var name = line.Substring(5);
+                var name = line.Substring(6).Trim();
+                var isLast = CheckIfLast(_lineIndex);
+                var branchSymbol = isLast ? "└─" : "├─";
 
                 Console.Write(GetIndent());
-                Console.WriteLine("├─" + name);
+                Console.WriteLine(branchSymbol + name);
 
                 _depth++;
                 _lineIndex++;
 
                 PrintTree();
             }
-
         }
+    }
+    private static bool CheckIfLast(int currentIndex)
+    {
+        int depth = 0;
+        int i = currentIndex + 1;
+
+        while (i < _lines.Length)
+        {
+            var line = _lines[i].Trim();
+
+            if (line.StartsWith("BEGIN "))
+            {
+                if (depth == 0) 
+                    return false;
+                depth++;
+            }
+            else if (line == "END")
+            {
+                if (depth == 0) 
+                    return true;
+                depth--;
+            }
+            i++;
+        }
+
+        return true;
     }
 
     private static string GetIndent()
