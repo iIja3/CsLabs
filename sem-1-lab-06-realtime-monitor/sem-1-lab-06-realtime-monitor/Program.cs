@@ -44,7 +44,16 @@ public class ServerMonitor
             Math.Round(_ram, 1),
             Math.Round(_temperature, 1));
     }
+    public void RenderGraph()
+    {
+        Program.RenderGraph();
+    }
 }
+public class Monitor : ServerMonitor
+{
+    public static string[] RenderGraph(double[] data) => Program.RenderGraph(data);
+}
+
 public class Program
 {
     private static double[] cpuHi = new double[20];
@@ -52,6 +61,9 @@ public class Program
     private static double[] ramHi = new double[20];
     private static int index = 0;
     private static int count = 0;
+    public const int GraphWidth = 20;
+    public const int GraphHeight = 15;
+
     public static void Main()
     {
         var monitor = new ServerMonitor();
@@ -65,6 +77,7 @@ public class Program
 
         monitor.Stop();
     }
+
     public static void OnDataReceived(double cpu, double ram, double temperature)
     {
         cpuHi[index] = cpu;
@@ -77,12 +90,14 @@ public class Program
         {
             File.AppendAllText("measurements.txt", $"{cpu}|{ram}|{temperature}{Environment.NewLine}");
         }
-        catch
+        catch (Exception ex)
         {
-
+            Console.WriteLine($"Ошибка: {ex.Message}");
         }
         DrawDashboard(cpu, ram, temperature);
+        RenderGraph();
     }
+
     private static void DrawDashboard(double currentCpu, double currentRam, double currentTemp)
     {
         Console.SetCursorPosition(0, 2);
@@ -92,5 +107,53 @@ public class Program
         Console.WriteLine($"RAM:         {currentRam,5:F1}%   ");
         Console.WriteLine($"Temperature: {currentTemp,5:F1} °C ");
         Console.WriteLine();
+    }
+    public static void RenderGraph()
+    {
+        var values = new double[count];
+        int start = (count < GraphWidth) ? 0 : index;
+        for (int i = 0; i < count; i++)
+            values[i] = cpuHi[(start + i) % GraphWidth];
+
+        var columns = RenderGraph(values);
+
+        Console.WriteLine("График CPU (последние 20 измерений):");
+        for (int row = GraphHeight - 1; row >= 0; row--)
+        {
+            Console.Write("|");
+            for (int col = 0; col < GraphWidth; col++)
+            {
+                char c = (row < columns[col].Length) ? columns[col][row] : ' ';
+                Console.Write(c);
+            }
+            Console.WriteLine("|");
+        }
+        Console.WriteLine("+" + new string('-', GraphWidth) + "+");
+        Console.WriteLine();
+    }
+    public static string[] RenderGraph(double[] data)
+    {
+        var columns = new string[GraphWidth];
+
+        if (data == null || data.Length == 0)
+        {
+            for (int i = 0; i < GraphWidth; i++)
+                columns[i] = new string(' ', GraphHeight);
+            return columns;
+        }
+        int take = Math.Min(data.Length, GraphWidth);
+        int offset = GraphWidth - take;
+        var values = new double[GraphWidth];
+        for (int i = 0; i < take; i++)
+            values[offset + i] = data[data.Length - take + i];
+
+        for (int col = 0; col < GraphWidth; col++)
+        {
+            double v = Math.Clamp(values[col], 0, 100);
+            int filled = (int)Math.Round(v / 100.0 * GraphHeight);
+            columns[col] = new string('#', filled) + new string(' ', GraphHeight - filled);
+        }
+
+        return columns;
     }
 }
